@@ -15,9 +15,9 @@ orb = cv.ORB_create()
 
 
 def drawPoints(img, points):
-	img_new = np.copy(img)
+	img_new = np.stack((img,)*3, axis=-1)
 	for coord in points:
-		img_new = cv.circle(img_new,(int(coord[0]),int(coord[1])),5, (255,0,0),1)
+		img_new = cv.circle(img_new,(int(coord[0]),int(coord[1])),5, (255,0,0),2)
 	return img_new
 
 # taken from these posts (combination):
@@ -55,7 +55,7 @@ rot_p_45 = imutils.rotate_bound(img, angle=45)
 kp, des = orb.detectAndCompute(img, None)
 
 # Get all the coordinates and convert them to int
-coords = [(int(k.pt[0]),int(k.pt[1])) for k in kp][:5]
+coords = [(int(k.pt[0]),int(k.pt[1])) for k in kp][:20]
 
 fig, axarr = plt.subplots(2,3)
 

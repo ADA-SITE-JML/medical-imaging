@@ -12,18 +12,17 @@ orb = cv.ORB_create()
 
 
 # draw only keypoints location,not size and orientation
-img2 = cv.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
+#img2 = cv.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
+
+toint = lambda x,y : (int(x), int(y))
 
 def drawKeypoints(img):
 	kp, des = orb.detectAndCompute(img, None)
-	return cv.drawKeypoints(img, kp[0:100], None, color=(0,255,0), flags=0)
-
-def findCommonCoordinates(keypoint_arr):
-	# 
-
-def drawCommonKeypoints(img,kp):
-	# 
-
+	img_new = np.copy(img)
+	for key_idx in range(10):
+		ctr = toint(*kp[key_idx].pt)
+		img_new = cv.circle(img_new,ctr,5, (255,0,0),1)
+	return img_new
 
 img2 = np.copy(img)
 rot_p_30 = imutils.rotate(img, angle=30)

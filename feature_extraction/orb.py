@@ -65,6 +65,15 @@ def getTransformedPixel(points, angle, scale = 1.0):
 	return M.dot(points_ones.T).T
 
 
+def getImageWithTransformedKeypoints(img, angle, original_coords):
+	rot_img = imutils.rotate_bound(img, angle = angle)
+
+	# Get all the coordinates and convert them to int
+	trPixels = getTransformedPixel(original_coords, angle, scale = 1.0)
+
+	return drawPoints(rot_img, trPixels)
+
+
 # returns the disctionary of nearby points (key) with the match count (value)
 def matchPoints(sorted_list1, sorted_list2, maxDistance = 50):
 	global matchDict
@@ -87,11 +96,6 @@ def matchPoints(sorted_list1, sorted_list2, maxDistance = 50):
 
 img2 = np.copy(img)
 
-rot_p_30 = imutils.rotate_bound(img, angle=30)
-rot_n_30 = imutils.rotate_bound(img, angle=-30)
-rot_p_15 = imutils.rotate_bound(img, angle=15)
-rot_n_15 = imutils.rotate_bound(img, angle=-15)
-rot_p_45 = imutils.rotate_bound(img, angle=45)
 
 kp, des = orb.detectAndCompute(img, None)
 
@@ -99,28 +103,34 @@ kp, des = orb.detectAndCompute(img, None)
 coords = [(int(k.pt[0]),int(k.pt[1])) for k in kp][:100]
 coords_sorted = sorted(coords)
 
+
+# kp, des = orb.detectAndCompute(rot_p_30, None)
+# coords2 = [(int(k.pt[0]),int(k.pt[1])) for k in kp][:100]
+# coords_sorted2 = sorted(coords2)
+# trPixels = getTransformedPixel(coords, 30, scale = 1.0)
+# axarr[0,1].imshow(drawPoints(rot_p_30, coords2))
+# md = matchPoints(coords2,trPixels)
+# print(md)
+
+# Screen 1: Demonstration of the keypoint transformation
 fig, axarr = plt.subplots(2,3)
+fig.suptitle('1. Demonstration of the keypoint transformation')
+axarr[0,0].imshow(drawPoints(img2,coords))
+axarr[0,1].imshow(getImageWithTransformedKeypoints(img, 30, coords))
+axarr[0,2].imshow(getImageWithTransformedKeypoints(img, -30, coords))
+axarr[1,0].imshow(getImageWithTransformedKeypoints(img, 15, coords))
+axarr[1,1].imshow(getImageWithTransformedKeypoints(img, -15, coords))
+axarr[1,2].imshow(getImageWithTransformedKeypoints(img, 45, coords))
+plt.show()
 
-kp, des = orb.detectAndCompute(rot_p_30, None)
-coords2 = [(int(k.pt[0]),int(k.pt[1])) for k in kp][:100]
-coords_sorted2 = sorted(coords2)
-trPixels = getTransformedPixel(coords, 30, scale = 1.0)
-axarr[0,1].imshow(drawPoints(rot_p_30, coords2))
-md = matchPoints(coords2,trPixels)
-print(md)
 
-trPixels = getTransformedPixel(coords, -30, scale = 1.0)
-axarr[0,2].imshow(drawPoints(rot_n_30, trPixels))
-
-trPixels = getTransformedPixel(coords, 15, scale = 1.0)
-axarr[1,0].imshow(drawPoints(rot_p_15, trPixels))
-
-trPixels = getTransformedPixel(coords, -15, scale = 1.0)
-axarr[1,1].imshow(drawPoints(rot_n_15, trPixels))
-
-trPixels = getTransformedPixel(coords, 45, scale = 1.0)
-axarr[1,2].imshow(drawPoints(rot_p_45, trPixels))
-
-axarr[0,0].imshow(drawCommonPoints(img2,coords))
-
+# Screen 2: Keypoints in various images
+fig, axarr = plt.subplots(2,3)
+fig.suptitle('2. Keypoints in various images')
+axarr[0,0].imshow(drawPoints(img2,coords))
+axarr[0,1].imshow(getImageWithTransformedKeypoints(img, 30, coords))
+axarr[0,2].imshow(getImageWithTransformedKeypoints(img, -30, coords))
+axarr[1,0].imshow(getImageWithTransformedKeypoints(img, 15, coords))
+axarr[1,1].imshow(getImageWithTransformedKeypoints(img, -15, coords))
+axarr[1,2].imshow(getImageWithTransformedKeypoints(img, 45, coords))
 plt.show()

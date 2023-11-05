@@ -11,10 +11,8 @@ img = cv.imread(fname, cv.IMREAD_GRAYSCALE)
 # Initiate ORB detector
 orb = cv.ORB_create()
 
-# draw only keypoints location,not size and orientation
-#img2 = cv.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
-
 matchDict = {}
+
 
 def drawPoints(img, points):
 	col = (255,0,0)
@@ -28,6 +26,7 @@ def drawPoints(img, points):
 		img_new = cv.circle(img_new,point,5, col,thk)
 	return img_new
 
+
 def rotateAndDrawPoints(img, angle):
 	col = (255,0,0)
 	thk = 1
@@ -38,6 +37,7 @@ def rotateAndDrawPoints(img, angle):
 	kp, des = orb.detectAndCompute(img_new, None)
 
 	return cv.drawKeypoints(img_new, kp, None, color=(255,0,0), flags=0)
+
 
 def drawCommonPoints(img, points):
 	img_new = np.stack((img,)*3, axis=-1)
@@ -51,6 +51,7 @@ def drawCommonPoints(img, points):
 			thk = 3
 			img_new = cv.circle(img_new,point,5, col,thk)
 	return img_new
+
 
 # Credits: taken from these posts (combination):
 # https://stackoverflow.com/questions/30327659/how-can-i-remap-a-point-after-an-image-rotation

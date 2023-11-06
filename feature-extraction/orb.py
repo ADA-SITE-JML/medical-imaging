@@ -32,6 +32,7 @@ def rotateAndDrawPoints(img, angle):
 	thk = 1
 
 	img_new = imutils.rotate_bound(img, angle = angle)
+	img_new = imutils.rotate_bound(img_new, angle = -angle)
 
 	img_new = np.stack((img_new,)*3, axis=-1)
 	kp, des = orb.detectAndCompute(img_new, None)

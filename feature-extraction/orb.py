@@ -5,13 +5,26 @@ import cv2 as cv
 from matplotlib import pyplot as plt
 from scipy.spatial.distance import cityblock
 
-fname = sys.argv[1]
-img = cv.imread(fname, cv.IMREAD_GRAYSCALE)
 
-# Initiate ORB detector
-orb = cv.ORB_create()
+def normalize(img):
+	norm_img = img - np.min(img)
+	norm_img = norm_img / np.max(norm_img)
 
-matchDict = {}
+def crop_image(img,th=0):
+	mask = img > th
+	return img[np.ix_(mask.any(1),mask.any(0))]
+
+# doubles the image's width and height by adding black margins
+def add_margins(img):
+	(h, w) = img.shape[:2]
+	mx = max(h,w)*2
+	new_img = np.zeros((mx,mx), np.uint8)
+
+	hh = (mx-h)//2
+	wh = (mx-w)//2
+
+	new_img[hh:hh+h,wh:wh+w] = img
+	return new_img
 
 
 def drawPoints(img, points):
@@ -107,15 +120,41 @@ def matchPoints(sorted_list1, sorted_list2, maxDistance = 50):
 	return matchDict
 
 
-kp, des = orb.detectAndCompute(img, None)
+fname = sys.argv[1]
+im_init = cv.imread(fname, cv.IMREAD_GRAYSCALE)
+
+#---------------------------------------------------------------
+#img = normalize(img_)
+img_crp = crop_image(im_init,2)
+img_margin = add_margins(img_crp)
+
+
+# Screen 1: Demonstration of the keypoint transformation
+fig, axarr = plt.subplots(1,3)
+fig.suptitle('1. Initial preparation')
+axarr[0].imshow(im_init,cmap='gray')
+axarr[1].imshow(img_crp,cmap='gray')
+axarr[2].imshow(img_margin,cmap='gray')
+plt.show()
+
+#---------------------------------------------------------------
+img = img_margin
+
+
+# Initiate ORB detector
+orb = cv.ORB_create()
+
+matchDict = {}
+
+kp = orb.detect(img, None)
 
 # Get all the coordinates and convert them to int
 coords = [(int(k.pt[0]),int(k.pt[1])) for k in kp]
 
 
-# Screen 1: Demonstration of the keypoint transformation
+# Screen 2: Demonstration of the keypoint transformation
 fig, axarr = plt.subplots(2,3)
-fig.suptitle('1. Demonstration of the keypoint transformation')
+fig.suptitle('2. Demonstration of the keypoint transformation')
 axarr[0,0].imshow(drawPoints(img,coords))
 axarr[0,1].imshow(getImageWithTransformedKeypoints(img, 30, coords))
 axarr[0,2].imshow(getImageWithTransformedKeypoints(img, -30, coords))
@@ -124,10 +163,11 @@ axarr[1,1].imshow(getImageWithTransformedKeypoints(img, -15, coords))
 axarr[1,2].imshow(getImageWithTransformedKeypoints(img, 45, coords))
 plt.show()
 
+#---------------------------------------------------------------
 
-# Screen 2: Keypoints in various images
+# Screen 3: Keypoints in various images
 fig, axarr = plt.subplots(2,3)
-fig.suptitle('2. Keypoints in various images')
+fig.suptitle('3. Keypoints in various images')
 axarr[0,0].imshow(drawPoints(img,coords))
 axarr[0,1].imshow(rotateAndDrawPoints(img, 30))
 axarr[0,2].imshow(rotateAndDrawPoints(img, -30))

@@ -3,8 +3,6 @@ import imutils
 import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
-from scipy.spatial.distance import cityblock
-
 
 def normalize(img):
 	norm_img = img - np.min(img)

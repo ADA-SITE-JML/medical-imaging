@@ -45,10 +45,10 @@ def rotateAndDrawPoints(img, angle):
 	thk = 1
 
 	img_new = imutils.rotate_bound(img, angle = angle)
-	img_new = imutils.rotate_bound(img_new, angle = -angle)
+#	img_new = imutils.rotate_bound(img_new, angle = -angle)
 
 	img_new = np.stack((img_new,)*3, axis=-1)
-	kp, des = orb.detectAndCompute(img_new, None)
+	kp = orb.detect(img_new, None)
 
 	return cv.drawKeypoints(img_new, kp, None, color=(255,0,0), flags=0)
 
@@ -119,6 +119,14 @@ def matchPoints(sorted_list1, sorted_list2, maxDistance = 50):
 			idx1 += 1
 	return matchDict
 
+def getImages(img, coords, max_images):
+	img_arr = np.zeros((max_images,40,40))
+
+	for i in range(max_images):
+		coord = coords[i]
+		img_arr[i,:,:] = img[coord[0]-20:coord[0]+20,coord[1]-20:coord[1]+20]
+	return img_arr
+
 
 fname = sys.argv[1]
 im_init = cv.imread(fname, cv.IMREAD_GRAYSCALE)
@@ -140,7 +148,6 @@ plt.show()
 #---------------------------------------------------------------
 img = img_margin
 
-
 # Initiate ORB detector
 orb = cv.ORB_create()
 
@@ -150,7 +157,6 @@ kp = orb.detect(img, None)
 
 # Get all the coordinates and convert them to int
 coords = [(int(k.pt[0]),int(k.pt[1])) for k in kp]
-
 
 # Screen 2: Demonstration of the keypoint transformation
 fig, axarr = plt.subplots(2,3)
@@ -176,7 +182,16 @@ axarr[1,1].imshow(rotateAndDrawPoints(img, -15))
 axarr[1,2].imshow(rotateAndDrawPoints(img, 45))
 plt.show()
 
-# Screen 3: Showing the 20 common keypoints and the 20x20 regions around them
+#---------------------------------------------------------------
+
+# Screen 4: Showing the 20 common keypoints and the 20x20 regions around them
 coords_sorted = sorted(coords)
 # md = matchPoints(coords2,trPixels)
 # print(md)
+fig, axarr = plt.subplots(4,5)
+fig.suptitle('4. 20 common keypoints and the 20x20 regions around them')
+img_arr  = getImages(img,coords,20)
+for i in range(4):
+	for j in range(5):
+		axarr[i,j].imshow(img_arr[i*5+j],cmap='gray')
+plt.show()

@@ -4,6 +4,8 @@ import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
 
+import math;
+
 def normalize(img):
 	norm_img = img - np.min(img)
 	norm_img = norm_img / np.max(norm_img)
@@ -15,13 +17,20 @@ def crop_image(img,th=0):
 # doubles the image's width and height by adding black margins
 def add_margins(img):
 	(h, w) = img.shape[:2]
-	mx = max(h,w)*2
+	# Find the biggest dimension and double it
+	#mx = max(h,w)*2
+	mx = math.ceil(2 * math.sqrt(h*h + w*w))
+	# A new square image will contain any version of the original image rotated around the center
 	new_img = np.zeros((mx,mx), np.uint8)
 
-	hh = (mx-h)//2
-	wh = (mx-w)//2
+	#hh = (mx-h)//2
+	#wh = (mx-w)//2
 
-	new_img[hh:hh+h,wh:wh+w] = img
+	hh = mx // 2 - h
+	wh = mx // 2
+
+	# Position the original image with its bottom left corner on the center
+	new_img[hh:hh+h, wh:wh+w] = img
 	return new_img
 
 
@@ -39,14 +48,40 @@ def drawPoints(img, points):
 
 
 def rotateAndDrawPoints(img, angle):
+	# Set color to red 
 	col = (255,0,0)
 	thk = 1
 
-	img_new = imutils.rotate_bound(img, angle = angle)
+	# Get the matrix for rotation around the center of the image
+	height, width = img.shape[:2] 
+	center = (width/2, height/2) 
+	#rotate_matrix = cv.getRotationMatrix2D(center, -angle, 1.0)
+	cos = math.cos(math.radians(-angle));
+	sin = math.sin(math.radians(-angle));
+
+	# We will use the global variable
+	global coords_combined
+
+	#img_new = imutils.rotate_bound(img, angle = angle)
+	img_new = imutils.rotate(img, angle = angle)
 #	img_new = imutils.rotate_bound(img_new, angle = -angle)
 
+	# No idea what does this one do
 	img_new = np.stack((img_new,)*3, axis=-1)
+
+	# Detect keypoints and draw them on the image
 	kp = orb.detect(img_new, None)
+	# Rotate the detected points back to the initial orientation
+	#coords_transformed = getTransformedPixel([(k.pt[0], k.pt[1]) for k in kp], angle, scale = 1.0)
+	
+	# Consider that y axis is directed down in screen coordinates
+	coords_transformed = [(k.pt[0] - center[0], center[1] - k.pt[1]) for k in kp]
+	
+	# Rotate all the points around the center of coordinates
+	coords_transformed = [(cos * k[0] - sin * k[1], sin * k[0] + cos * k[1]) for k in coords_transformed]
+
+	# Translate all the points back and add to the combined list
+	coords_combined = coords_combined + [(int(k[0] + center[0]), int(center[1] - k[1])) for k in coords_transformed]
 
 	return cv.drawKeypoints(img_new, kp, None, color=(255,0,0), flags=0)
 
@@ -99,7 +134,7 @@ def getImageWithTransformedKeypoints(img, angle, original_coords):
 	return drawPoints(rot_img, trPixels)
 
 
-# returns the disctionary of nearby points (key) with the match count (value)
+# returns the dictionary of nearby points (key) with the match count (value)
 def matchPoints(sorted_list1, sorted_list2, maxDistance = 50):
 	global matchDict
 
@@ -125,7 +160,7 @@ def getImages(img, coords, max_images):
 		img_arr[i,:,:] = img[coord[0]-20:coord[0]+20,coord[1]-20:coord[1]+20]
 	return img_arr
 
-
+# Get the image file name from the first argument
 fname = sys.argv[1]
 im_init = cv.imread(fname, cv.IMREAD_GRAYSCALE)
 
@@ -150,6 +185,7 @@ img = img_margin
 orb = cv.ORB_create()
 
 matchDict = {}
+coords_combined = []
 
 kp = orb.detect(img, None)
 
@@ -173,11 +209,23 @@ plt.show()
 fig, axarr = plt.subplots(2,3)
 fig.suptitle('3. Keypoints in various images')
 axarr[0,0].imshow(drawPoints(img,coords))
+
+# A list for storing all keypoints combined
+coords_combined = []
 axarr[0,1].imshow(rotateAndDrawPoints(img, 30))
 axarr[0,2].imshow(rotateAndDrawPoints(img, -30))
 axarr[1,0].imshow(rotateAndDrawPoints(img, 15))
 axarr[1,1].imshow(rotateAndDrawPoints(img, -15))
 axarr[1,2].imshow(rotateAndDrawPoints(img, 45))
+plt.show()
+
+#---------------------------------------------------------------
+
+# Screen 3½: Showing all detected keypoints and the original image
+fig, axarr = plt.subplots(1,2)
+fig.suptitle('3½. All detected keypoints combined')
+axarr[0].imshow(drawPoints(img,coords))
+axarr[1].imshow(drawPoints(img,coords_combined))
 plt.show()
 
 #---------------------------------------------------------------

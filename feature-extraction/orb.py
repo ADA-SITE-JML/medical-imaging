@@ -34,16 +34,16 @@ def add_margins(img):
 	return new_img
 
 
-def drawPoints(img, points):
-	col = (255,0,0)
+def drawPoints(img, points, radius=5):
+	col = (255, 0, 0)
 	thk = 1
 
 	img_new = np.stack((img,)*3, axis=-1)
 
 	for coord in points:
-		point = (int(coord[0]),int(coord[1]))
+		point = (int(coord[0]), int(coord[1]))
 
-		img_new = cv.circle(img_new,point,5, col,thk)
+		img_new = cv.circle(img_new, point, radius, col, thk)
 	return img_new
 
 
@@ -67,7 +67,7 @@ def rotateAndDrawPoints(img, angle):
 #	img_new = imutils.rotate_bound(img_new, angle = -angle)
 
 	# No idea what does this one do
-	img_new = np.stack((img_new,)*3, axis=-1)
+	#img_new = np.stack((img_new,)*3, axis=-1)
 
 	# Detect keypoints and draw them on the image
 	kp = orb.detect(img_new, None)
@@ -84,6 +84,7 @@ def rotateAndDrawPoints(img, angle):
 	coords_combined = coords_combined + [(int(k[0] + center[0]), int(center[1] - k[1])) for k in coords_transformed]
 
 	return cv.drawKeypoints(img_new, kp, None, color=(255,0,0), flags=0)
+	#return drawPoints(img_new, coords_combined, 1)
 
 
 def drawCommonPoints(img, points):
@@ -190,12 +191,12 @@ coords_combined = []
 kp = orb.detect(img, None)
 
 # Get all the coordinates and convert them to int
-coords = [(int(k.pt[0]),int(k.pt[1])) for k in kp]
+coords = [(int(k.pt[0]), int(k.pt[1])) for k in kp]
 
 # Screen 2: Demonstration of the keypoint transformation
 fig, axarr = plt.subplots(2,3)
 fig.suptitle('2. Demonstration of the keypoint transformation')
-axarr[0,0].imshow(drawPoints(img,coords))
+axarr[0,0].imshow(drawPoints(img, coords))
 axarr[0,1].imshow(getImageWithTransformedKeypoints(img, 30, coords))
 axarr[0,2].imshow(getImageWithTransformedKeypoints(img, -30, coords))
 axarr[1,0].imshow(getImageWithTransformedKeypoints(img, 15, coords))
@@ -208,7 +209,7 @@ plt.show()
 # Screen 3: Keypoints in various images
 fig, axarr = plt.subplots(2,3)
 fig.suptitle('3. Keypoints in various images')
-axarr[0,0].imshow(drawPoints(img,coords))
+axarr[0,0].imshow(drawPoints(img, coords))
 
 # A list for storing all keypoints combined
 coords_combined = []
@@ -224,8 +225,8 @@ plt.show()
 # Screen 3½: Showing all detected keypoints and the original image
 fig, axarr = plt.subplots(1,2)
 fig.suptitle('3½. All detected keypoints combined')
-axarr[0].imshow(drawPoints(img,coords))
-axarr[1].imshow(drawPoints(img,coords_combined))
+axarr[0].imshow(drawPoints(img, coords, 2))
+axarr[1].imshow(drawPoints(img, coords_combined, 2))
 plt.show()
 
 #---------------------------------------------------------------

@@ -82,11 +82,9 @@ def rotateAndDrawPoints(img, angle):
 	global coords_combined
 
 	#img_new = imutils.rotate_bound(img, angle = angle)
-	img_new = imutils.rotate(img, angle = angle)
-#	img_new = imutils.rotate_bound(img_new, angle = -angle)
-
-	# No idea what does this one do
+	#img_new = imutils.rotate_bound(img_new, angle = -angle)
 	#img_new = np.stack((img_new,)*3, axis=-1)
+	img_new = imutils.rotate(img, angle = angle)
 
 	# Detect keypoints and draw them on the image
 	kp = orb.detect(img_new, None)
@@ -105,17 +103,48 @@ def rotateAndDrawPoints(img, angle):
 	return cv.drawKeypoints(img_new, kp, None, color=(255,0,0), flags=0)
 	#return drawPoints(img_new, coords_combined, 1)
 
-# Draw a histogram on a given image using the numbers
-def drawHistogram(img, numbers, width, height, colormin=(0, 255, 255), colormax=(255, 0, 0)):
-	#find the maximum and minimum in the 2D list
-	num_max = max(map(max, numbers))
-	num_min = min(map(min, numbers))
+# Draw a 2D histogram on a given image using the numbers
+def drawHistogram(img, points, width, height, colormin=(0, 255, 255), colormax=(255, 0, 0)):
+	# Count density of points in a given raster of rectangular cells
+	numbers = count_points(points, img, width, height)
+	
+	# If the image is a grayscale one, turn it to RGB
+	if len(img.shape) < 3:
+		img_new = np.stack((img,)*3, axis=-1)
+	else:
+		img_new = np.array(img)
 
 	#for row in numbers:	
 	#	print(row)
 	#print(num_max, num_min)
+	
+	# Find the maximum and minimum in the 2D list
+	num_max = max(map(max, numbers))
+	num_min = min(map(min, numbers))
+	# Loop through all rows and columns
+	(rows, cols) = numbers.shape[:2]
+	(img_height, img_width) = img.shape[:2]
+	# Generate a histogram mask image
+	img_histo = np.zeros_like(img_new)
+	for i in range(rows):
+		for j in range(cols):
+			n = (numbers[i,j] - num_min)/num_max
+			# Interpolate color between the colormin and colormax values
+			color = ((1-n)*colormin[0] + n*colormax[0], (1-n)*colormin[1] + n*colormax[1], (1-n)*colormin[2] + n*colormax[2])
+			# Strangely it does not draw if the coordinates are outside the image area
+			img_histo = cv.rectangle(img_histo, (j*width, i*height), (min(width*(j+1)-1, img_width-1), min(height*(i+1)-1, img_height-1)), color, -1)
 
-	return img
+	#img_new = cv.bitwise_and(img_new, img_histo) # Bitwise does not work as intended
+	# Use the grayscale image as intensity for the RGM image
+	for i in range(img_height):
+		for j in range(img_width):
+			# Overflow happens if you multiply first instead of dividing to 255
+			img_new[i, j][0] = round(img_histo[i, j][0] / 255 * img_new[i, j][0])
+			img_new[i, j][1] = round(img_histo[i, j][1] / 255 * img_new[i, j][1])
+			img_new[i, j][2] = round(img_histo[i, j][2] / 255 * img_new[i, j][2])
+
+	#return img_histo
+	return img_new
 
 # Returns the number of keypoints for the 2D histogram
 def count_points(points, img, width, height):
@@ -208,7 +237,8 @@ def getImages(img, points, width, height, max_images):
 	for i in range(rows):
 		col = []
 		for j in range(cols):
-			col.append((numbers[i][j], img[i*width:(i+1)*width-1, j*height:(j+1)*height-1]))
+			# Columns are associated with width and rows with height
+			col.append((numbers[i][j], img[i*height:(i+1)*height-1, j*width:(j+1)*width-1]))
 		img_nums.append(col)
 	dtype = [('density', int), ('image', object)]
 	img_cells = np.array(img_nums, dtype=dtype) #Will return "an inhomogeneous shape" error without dtype
@@ -247,8 +277,11 @@ img_margin = add_margins(img_cropped)
 # Screen 1: Demonstration of the keypoint transformation
 fig, axarr = plt.subplots(1,3)
 fig.suptitle('1. Initial preparation')
+axarr[0].set_title('Original image', loc='right')
 axarr[0].imshow(img_init, cmap='gray')
+axarr[1].set_title('Cropped image', loc='right')
 axarr[1].imshow(img_cropped, cmap='gray')
+axarr[2].set_title('Image with margins', loc='right')
 axarr[2].imshow(img_margin, cmap='gray')
 plt.show()
 
@@ -283,28 +316,39 @@ coords = [(int(k.pt[0]), int(k.pt[1])) for k in kp]
 # Screen 3: Keypoints in various images
 fig, axarr = plt.subplots(2,3)
 fig.suptitle('3. Keypoints in various images')
-axarr[0,0].imshow(drawPoints(img, coords))
 
 # A list for storing all keypoints combined
 coords_combined = []
+
+# Rotate the image detect and store the combined list of keypoints
+axarr[0, 0].set_title('Rotation: 0º', loc='right')
+#axarr[0,0].imshow(drawPoints(img, coords))
+axarr[0,0].imshow(rotateAndDrawPoints(img, 0)) # You may miss some keypoints in the original without this call
+axarr[0, 1].set_title('Rotation: 30º', loc='right')
 axarr[0,1].imshow(rotateAndDrawPoints(img, 30))
+axarr[0, 2].set_title('Rotation: -30º', loc='right')
 axarr[0,2].imshow(rotateAndDrawPoints(img, -30))
+axarr[1, 0].set_title('Rotation: 15º', loc='right')
 axarr[1,0].imshow(rotateAndDrawPoints(img, 15))
+axarr[1, 1].set_title('Rotation: -15º', loc='right')
 axarr[1,1].imshow(rotateAndDrawPoints(img, -15))
+axarr[1, 2].set_title('Rotation: 45º', loc='right')
 axarr[1,2].imshow(rotateAndDrawPoints(img, 45))
 plt.show()
 
 #---------------------------------------------------------------
 
 # Screen 3½: Showing all detected keypoints and the original image
-fig, axarr = plt.subplots(1,2)
+fig, axarr = plt.subplots(1, 2, constrained_layout = True)
 fig.suptitle('3½. All detected keypoints combined')
+axarr[0].set_title('Original image with\nkeypoints', loc='right')
 axarr[0].imshow(remove_margins(drawPoints(img, coords, 2), width_cropped, height_cropped))
 #axarr[0].imshow(remove_margins(drawPoints(img, coords_combined, 2), width_cropped, height_cropped))
 
 # Remove the margins and convert the detected keypoints to original coordinates
 coords_combined = remove_margin_coords(coords_combined, img, width_cropped, height_cropped)
 img = remove_margins(img, width_cropped, height_cropped)
+axarr[1].set_title('Original image with\nall keypoints combined', loc='right')
 axarr[1].imshow(drawPoints(img, coords_combined, 2))
 plt.show()
 
@@ -316,8 +360,8 @@ fig.suptitle('3¾. Histogram of detected keypoints')
 axarr[0].imshow(drawPoints(img, coords_combined, 2))
 
 # Generate the numbers for the histogram
-histogram_numbers = count_points(coords_combined, img, 20, 20)
-axarr[1].imshow(drawHistogram(drawPoints(img, coords_combined, 2), histogram_numbers, 20, 20))
+#histogram_numbers = count_points(coords_combined, img, 20, 20)
+axarr[1].imshow(drawHistogram(img, coords_combined, 20, 20))
 plt.show()
 
 #---------------------------------------------------------------
@@ -326,10 +370,11 @@ plt.show()
 coords_sorted = sorted(coords)
 # md = matchPoints(coords2,trPixels)
 # print(md)
-fig, axarr = plt.subplots(4,5)
+fig, axarr = plt.subplots(4, 5, constrained_layout = True)
 fig.suptitle('4. 20 common keypoints and the 20x20 regions around them')
 img_arr  = getImages(img, coords_combined, 20, 20, 20)
 for i in range(4):
 	for j in range(5):
-		axarr[i,j].imshow(img_arr[i*5+j][0], cmap='gray')
+		axarr[i, j].set_title(img_arr[i*5+j][1], loc='right')
+		axarr[i, j].imshow(img_arr[i*5+j][0], cmap='gray')
 plt.show()

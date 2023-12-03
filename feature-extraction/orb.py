@@ -105,6 +105,18 @@ def rotateAndDrawPoints(img, angle):
 	return cv.drawKeypoints(img_new, kp, None, color=(255,0,0), flags=0)
 	#return drawPoints(img_new, coords_combined, 1)
 
+# Draw a histogram on a given image using the numbers
+def drawHistogram(img, numbers, width, height, colormin=(0, 255, 255), colormax=(255, 0, 0)):
+	#find the maximum and minimum in the 2D list
+	num_max = max(map(max, numbers))
+	num_min = min(map(min, numbers))
+
+	#for row in numbers:	
+	#	print(row)
+	#print(num_max, num_min)
+
+	return img
+
 # Returns the number of keypoints for the 2D histogram
 def count_points(points, img, width, height):
 	# Get the size of the image
@@ -112,7 +124,7 @@ def count_points(points, img, width, height):
 	rows, cols = (math.ceil(h/height), math.ceil(w/width))
 	
 	# Introduce a 2D list for storing numbers
-	number_points = [[0 for i in range(cols)] for j in range(rows)]
+	number_points = np.array([[0 for i in range(cols)] for j in range(rows)])
 	for coord in points:
 		number_points[math.floor(coord[1]/height)][math.floor(coord[0]/width)] += 1
 	
@@ -185,12 +197,35 @@ def matchPoints(sorted_list1, sorted_list2, maxDistance = 50):
 			idx1 += 1
 	return matchDict
 
-def getImages(img, coords, max_images):
-	img_arr = np.zeros((max_images,40,40))
+# Returns array of images of given size with highest numbers in histogram
+def getImages(img, points, width, height, max_images):
+	# Count density of points in a given raster of rectangular cells
+	numbers = count_points(points, img, width, height)
+	(rows, cols) = numbers.shape[:2]
 
+	# Generate a 2D array of tuples of related density numbers and image fragments 
+	img_nums = [] 
+	for i in range(rows):
+		col = []
+		for j in range(cols):
+			col.append((numbers[i][j], img[i*width:(i+1)*width-1, j*height:(j+1)*height-1]))
+		img_nums.append(col)
+	dtype = [('density', int), ('image', object)]
+	img_cells = np.array(img_nums, dtype=dtype) #Will return "an inhomogeneous shape" error without dtype
+	
+	# Flatten the 2D array and sort by the density in a descending order
+	img_cells_sorted = sorted(img_cells.flatten(), reverse=True, key=lambda x: x[0])
+
+	#img_arr = np.zeros((max_images, width, height))
 	#for i in range(max_images):
 	#	coord = coords[i]
 	#	img_arr[i,:,:] = img[coord[0]-20:coord[0]+20,coord[1]-20:coord[1]+20]
+
+	# Return the top max_images number of images along with the related density number
+	img_arr = []
+	for i in range(max_images):
+		img_arr.append((img_cells_sorted[i][1], img_cells_sorted[i][0]))
+
 	return img_arr
 
 #---------------------------------------------------------------
@@ -275,18 +310,26 @@ plt.show()
 
 #---------------------------------------------------------------
 
+# Screen 3¾: Showing a histogram of detected keypoints on the original image
+fig, axarr = plt.subplots(1,2)
+fig.suptitle('3¾. Histogram of detected keypoints')
+axarr[0].imshow(drawPoints(img, coords_combined, 2))
+
+# Generate the numbers for the histogram
+histogram_numbers = count_points(coords_combined, img, 20, 20)
+axarr[1].imshow(drawHistogram(drawPoints(img, coords_combined, 2), histogram_numbers, 20, 20))
+plt.show()
+
+#---------------------------------------------------------------
+
 # Screen 4: Showing the 20 common keypoints and the 20x20 regions around them
 coords_sorted = sorted(coords)
-histogram_numbers = count_points(coords_combined, img, 20, 20)
-for row in histogram_numbers:
-	print(row)
-
 # md = matchPoints(coords2,trPixels)
 # print(md)
 fig, axarr = plt.subplots(4,5)
 fig.suptitle('4. 20 common keypoints and the 20x20 regions around them')
-img_arr  = getImages(img,coords,20)
+img_arr  = getImages(img, coords_combined, 20, 20, 20)
 for i in range(4):
 	for j in range(5):
-		axarr[i,j].imshow(img_arr[i*5+j],cmap='gray')
+		axarr[i,j].imshow(img_arr[i*5+j][0], cmap='gray')
 plt.show()

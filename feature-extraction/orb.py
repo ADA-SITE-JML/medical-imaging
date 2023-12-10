@@ -355,13 +355,14 @@ plt.show()
 #---------------------------------------------------------------
 
 # Screen 3¾: Showing a histogram of detected keypoints on the original image
-fig, axarr = plt.subplots(1,2)
+fig, axarr = plt.subplots(1,3)
 fig.suptitle('3¾. Histogram of detected keypoints')
 axarr[0].imshow(drawPoints(img, coords_combined, 2))
 
 # Generate the numbers for the histogram
-#histogram_numbers = count_points(coords_combined, img, 20, 20)
-axarr[1].imshow(drawHistogram(img, coords_combined, 20, 20))
+histogram_numbers = count_points(coords_combined, img, 20, 20)
+axarr[1].imshow(histogram_numbers)
+axarr[2].imshow(drawHistogram(img, coords_combined, 20, 20))
 plt.show()
 
 #---------------------------------------------------------------

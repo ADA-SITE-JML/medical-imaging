@@ -52,7 +52,7 @@ def remove_margin_coords(points, img, width, height):
 	
 	return new_points
 
-def drawPoints(img, points, radius=5):
+def drawPoints(img, points, radius=2):
 	color = (255, 0, 0)
 	thickness = 1
 
@@ -169,7 +169,7 @@ def drawCommonPoints(img, points):
 		if point in matchDict:
 			col = (0,255,0)
 			thk = 3
-			img_new = cv.circle(img_new,point,5, col,thk)
+			img_new = cv.circle(img_new,point,2, col,thk)
 	
 	return img_new
 
